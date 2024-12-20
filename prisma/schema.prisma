@@ -27,6 +27,7 @@ model Nonce{
   uid String
   email String
   purpose String
+  token String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

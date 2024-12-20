@@ -2,39 +2,22 @@ import { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
-import { isEmail } from "validator";
-import { z } from "zod";
+import { UserSchema } from "../lib/zod";
+import { sendOtpEmail } from "../utils/mailer";
 // import CreateUserDto from "../dtos/create-user";
-
-// const registerSchema = z.object({
-//   username: z
-//     .string()
-//     .min(3, { message: "Username must be at least 3 characters" })
-//     .max(30),
-//   email: z.string().email({ message: "Invalid email address" }),
-//   password: z
-//     .string()
-//     .min(8, { message: "Password must be at least 8 characters long" })
-//     .regex(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/, {
-//       message: "Password must include letters and numbers",
-//     }),
-// });
 
 const register = async (req: Request, res: Response): Promise<any> => {
   const { username, email, password } = req.body;
 
-  const requiredFields = [username, email, password];
-  if (requiredFields.some((field) => field.length === 0)) {
+  const result = UserSchema.safeParse(req.body);
+  if (!result.success) {
+    // Handle validation errors
     return res
       .status(StatusCodes.BAD_REQUEST)
-      .json({ message: "Please provide all inputs" });
+      .json({ errors: result.error.errors });
   }
 
-  if (!isEmail(email)) {
-    return res
-      .status(StatusCodes.BAD_REQUEST)
-      .json({ message: "Please provide a valid email" });
-  }
+  const validatedData = result.data;
 
   const emailAlreadyExists = await prisma.user.findUnique({
     where: {
@@ -65,17 +48,24 @@ const register = async (req: Request, res: Response): Promise<any> => {
     },
   });
 
-  res
-    .status(StatusCodes.OK)
-    .json({ message: "Please verify your email", userToken });
+  await sendOtpEmail({
+    email: userToken.email,
+    emailType: "VERIFY",
+    userId: userToken.id,
+    token,
+  });
+
+  res.status(StatusCodes.OK).json({ message: "Please verify your email" });
 };
 
 const verifyEmail = async (req: Request, res: Response) => {
-  res.send("verify email");
+  const { otp, uid } = req.body;
+
+  res.status(StatusCodes.OK).json({ otp, uid });
 };
 
 const login = async (req: Request, res: Response) => {
   res.send("login");
 };
 
-export { register, login };
+export { register, verifyEmail, login };
