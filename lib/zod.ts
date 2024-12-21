@@ -10,3 +10,8 @@ export const UserSchema = z.object({
     .string()
     .min(3, { message: "Username must be atleast 3 characters long" }),
 });
+
+export const UserVerifySchema = z.object({
+  uid: z.string().regex(/^[A-Za-z0-9+/=]*$/, "Invalid Base64 string"),
+  otp: z.string().regex(/^\d{6}$/, "OTP must be a 6-digit string"),
+});

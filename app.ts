@@ -8,14 +8,19 @@ const PORT = 3000;
 // router
 import authRouter from "./routes/authRoutes";
 
+//middleware
+import errorHandlerMiddleware from "./middleware/error-handler";
+
 // middlewares
 app.use(express.json());
 
 // routes
 app.use("/api/v1/auth", authRouter);
 
+app.use(errorHandlerMiddleware);
+
 app.get("/", (req, res) => {
-  res.send("hello world");
+  res.send("Plana App");
 });
 
 const start = async () => {

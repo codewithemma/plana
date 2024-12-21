@@ -4,7 +4,6 @@ import crypto from "crypto";
 import { PrismaClient } from "@prisma/client";
 import { generateEmailTemplate } from "./generateEmail";
 const prisma = new PrismaClient();
-// import { generateEmailTemplate } from "./generateEmail";
 
 interface SendOtpEmailParams {
   email: string;
@@ -14,7 +13,6 @@ interface SendOtpEmailParams {
 }
 
 export const sendOtpEmail = async (
-  //   req: Request,
   //   res: Response,
   { email, emailType, userId, token }: SendOtpEmailParams
 ) => {
