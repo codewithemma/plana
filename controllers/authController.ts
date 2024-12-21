@@ -68,7 +68,7 @@ const verifyEmail = async (req: Request, res: Response) => {
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(password, salt);
 
-  await prisma.user.create({
+  const savedUser = await prisma.user.create({
     data: {
       username,
       email,
@@ -76,6 +76,15 @@ const verifyEmail = async (req: Request, res: Response) => {
       isVerified: true,
     },
   });
+
+  if (savedUser) {
+    await prisma.nonce.deleteMany({
+      where: {
+        uid,
+        purpose: "VERIFY",
+      },
+    });
+  }
 
   res.status(StatusCodes.OK).json({ message: "Email verified successfully" });
 };
