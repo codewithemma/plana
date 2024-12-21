@@ -1,8 +1,8 @@
 import nodemailer from "nodemailer";
 import crypto from "crypto";
-// import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
 import { generateEmailTemplate } from "./generateEmail";
+import BadRequestError from "../errors/bad-request";
 const prisma = new PrismaClient();
 
 interface SendOtpEmailParams {
@@ -12,28 +12,24 @@ interface SendOtpEmailParams {
   token: string;
 }
 
-export const sendOtpEmail = async (
-  //   res: Response,
-  { email, emailType, userId, token }: SendOtpEmailParams
-) => {
+export const sendOtpEmail = async ({
+  email,
+  emailType,
+  userId,
+  token,
+}: SendOtpEmailParams) => {
   try {
     // generate hashed token
     const hashedToken = crypto.randomInt(100000, 999999).toString();
-    console.log(hashedToken);
 
     if (emailType === "VERIFY") {
       await prisma.nonce.update({
         where: { id: userId },
         data: { email, token: hashedToken },
       });
-    } else if (emailType === "RESET") {
-      await prisma.nonce.update({
-        where: { id: userId },
-        data: { email, token: hashedToken },
-      });
     }
 
-    const resetUrl = `${process.env.ORIGIN}/auth/forgot-password/reset?userid=${userId}&token=${hashedToken}`;
+    const resetUrl = `${process.env.ORIGIN}/auth/forgot-password/reset?userid=${userId}&email=${email}`;
 
     const verificationUrl = `${process.env.ORIGIN}/auth/verify-email?quid=${token}`;
 
@@ -81,7 +77,7 @@ export const sendOtpEmail = async (
     const mailResponse = await transporter.sendMail(mailOptions);
     return mailResponse;
   } catch (error) {
-    // console.error("Error in sendOtpEmail:", error); // Log the error
-    throw new Error("Something went wrong");
+    console.error("Error in sendOtpEmail:", error); // Log the error
+    throw new BadRequestError("Something went wrong");
   }
 };

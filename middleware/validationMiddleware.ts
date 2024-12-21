@@ -1,5 +1,10 @@
 import { Request, Response, NextFunction } from "express";
-import { UserSchema, UserVerifySchema } from "../lib/zod";
+import {
+  UserForgotPassword,
+  UserResetPassword,
+  UserSchema,
+  UserVerifySchema,
+} from "../lib/zod";
 
 export const validateRegister = (
   req: Request,
@@ -16,5 +21,23 @@ export const validateVerifyEmail = (
   next: NextFunction
 ) => {
   UserVerifySchema.parse(req.body);
+  next();
+};
+
+export const validateForgotPassword = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  UserForgotPassword.parse(req.body);
+  next();
+};
+
+export const validateResetPassword = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  UserResetPassword.parse(req.body);
   next();
 };
