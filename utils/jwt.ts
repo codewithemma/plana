@@ -13,12 +13,18 @@ const createJWT = ({ payload }: { payload: Payload }): string => {
 };
 
 const secret = process.env.JWT_SECRET;
-if (!secret) {
-  throw new BadRequestError("JWT_SECRET is not defined");
-}
 
-export const isTokenValid = (token: string) => {
-  jwt.verify(token, secret) as jwt.JwtPayload;
+export const isTokenValid = (token: string): Payload => {
+  if (!secret) {
+    throw new BadRequestError("JWT_SECRET is not defined");
+  }
+
+  try {
+    const decoded = jwt.verify(token, secret) as Payload; // Validate and decode token
+    return decoded; // Return the decoded payload
+  } catch (error) {
+    throw new BadRequestError("Invalid or expired token");
+  }
 };
 
 const attachCookieToResponse = ({

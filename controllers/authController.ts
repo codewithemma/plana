@@ -237,23 +237,20 @@ const resetPassword = async (req: Request, res: Response) => {
 };
 
 const logout = async (req: Request, res: Response) => {
-  res.send("login");
-  // console.log(req.user);
-  // await prisma.token.deleteMany({
-  //   where: {
-  //     userId: r,
-  //   },
-  // });
-  // await Token.findOneAndDelete({ user: req.user.userId });
-  // res.cookie("accessToken", "logout", {
-  //   httpOnly: true,
-  //   expires: new Date(Date.now()),
-  // });
-  // res.cookie("refreshToken", "logout", {
-  //   httpOnly: true,
-  //   expires: new Date(Date.now()),
-  // });
-  // res.status(StatusCodes.OK).json({ msg: "user logged out!" });
+  await prisma.token.deleteMany({
+    where: {
+      userId: req.user?._id,
+    },
+  });
+  res.cookie("planaAtoken", "logout", {
+    httpOnly: true,
+    expires: new Date(Date.now()),
+  });
+  res.cookie("planaRtoken", "logout", {
+    httpOnly: true,
+    expires: new Date(Date.now()),
+  });
+  res.status(StatusCodes.OK).json({ msg: "user logged out!" });
 };
 
 export { register, verifyEmail, login, forgotPassword, resetPassword, logout };

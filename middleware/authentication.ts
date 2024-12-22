@@ -1,6 +1,9 @@
 import { Request, Response, NextFunction } from "express";
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
 import { isTokenValid } from "../utils/jwt";
 import UnauthenticatedError from "../errors/unauthenticated-error";
+import attachCookiesToResponse from "../utils/jwt";
 
 const authenticateUser = async (
   req: Request,
@@ -15,12 +18,17 @@ const authenticateUser = async (
       req.user = payload.user;
       return next();
     }
+
     // check for refreshtoken
     const payload = isTokenValid(planaRtoken);
-    const existingRefreshToken = await Token.findOne({
-      user: payload.user.userId,
-      refreshToken: payload.refreshToken,
+
+    const existingRefreshToken = await prisma.token.findFirst({
+      where: {
+        userId: payload.user._id,
+        refreshToken: payload.refreshToken,
+      },
     });
+
     if (!existingRefreshToken || !existingRefreshToken?.isValid) {
       throw new UnauthenticatedError("Authentication Invalid");
     }
