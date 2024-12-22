@@ -3,13 +3,16 @@ import { StatusCodes } from "http-status-codes";
 import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 import bcrypt from "bcrypt";
+import crypto from "crypto";
 import { sendOtpEmail } from "../utils/mailer";
 import UnauthenticatedError from "../errors/unauthenticated-error";
 import BadRequestError from "../errors/bad-request";
 import decodeBase64 from "../utils/decodeBase64";
 import hashString from "../utils/createHash";
+import { createTokenUser } from "../utils/createTokenUser";
+import attachCookiesToResponse from "../utils/jwt";
 
-const register = async (req: Request, res: Response): Promise<any> => {
+const register = async (req: Request, res: Response) => {
   const { username, email, password } = req.body;
 
   const emailAlreadyExists = await prisma.user.findUnique({
@@ -91,7 +94,67 @@ const verifyEmail = async (req: Request, res: Response) => {
 };
 
 const login = async (req: Request, res: Response) => {
-  res.send("login");
+  const { email, password } = req.body;
+
+  const user = await prisma.user.findUnique({
+    where: {
+      email,
+    },
+  });
+
+  if (!user) {
+    throw new BadRequestError("No user found, please sign up");
+  }
+
+  const comparePassword = await bcrypt.compare(password, user.password);
+
+  if (!comparePassword) {
+    throw new BadRequestError("Incorrect email or password");
+  }
+
+  const tokenUser = createTokenUser({
+    _id: user.id,
+    username: user.username,
+    role: user.role,
+  });
+
+  // create a fresh token;
+  let refreshToken = "";
+
+  const existingRefereshToken = await prisma.token.findFirst({
+    where: {
+      userId: user.id,
+    },
+  });
+
+  if (existingRefereshToken) {
+    const { isValid } = existingRefereshToken;
+    if (!isValid) {
+      throw new UnauthenticatedError("Invalid Credentials");
+    }
+    refreshToken = existingRefereshToken.refreshToken;
+    attachCookiesToResponse({ res, user: tokenUser, refreshToken });
+    res.status(StatusCodes.OK).json({ user: tokenUser });
+    return;
+  }
+
+  refreshToken = crypto.randomBytes(40).toString("hex");
+  const userAgent = req.headers["user-agent"];
+  const ip = req.ip || "0.0.0.0";
+
+  await prisma.token.create({
+    data: {
+      refreshToken,
+      ip,
+      userAgent: userAgent || "Unknown",
+      userId: user.id,
+      isValid: true, // Provide default if required in your schema
+    },
+  });
+
+  attachCookiesToResponse({ res, user: tokenUser, refreshToken });
+
+  res.status(StatusCodes.OK).json({ user: tokenUser });
 };
 
 const forgotPassword = async (req: Request, res: Response) => {
@@ -173,4 +236,24 @@ const resetPassword = async (req: Request, res: Response) => {
   res.status(StatusCodes.OK).json({ message: "Password reset successful" });
 };
 
-export { register, verifyEmail, login, forgotPassword, resetPassword };
+const logout = async (req: Request, res: Response) => {
+  res.send("login");
+  // console.log(req.user);
+  // await prisma.token.deleteMany({
+  //   where: {
+  //     userId: r,
+  //   },
+  // });
+  // await Token.findOneAndDelete({ user: req.user.userId });
+  // res.cookie("accessToken", "logout", {
+  //   httpOnly: true,
+  //   expires: new Date(Date.now()),
+  // });
+  // res.cookie("refreshToken", "logout", {
+  //   httpOnly: true,
+  //   expires: new Date(Date.now()),
+  // });
+  // res.status(StatusCodes.OK).json({ msg: "user logged out!" });
+};
+
+export { register, verifyEmail, login, forgotPassword, resetPassword, logout };
