@@ -1,13 +1,13 @@
 import { StatusCodes } from "http-status-codes";
 import CustomAPIError from "./custom-api";
 
-class UnauthenticatedError extends CustomAPIError {
+class ConflictError extends CustomAPIError {
   statusCode: number;
 
   constructor(message: string) {
     super(message);
-    this.statusCode = StatusCodes.FORBIDDEN;
+    this.statusCode = StatusCodes.CONFLICT;
   }
 }
 
-export default UnauthenticatedError;
+export default ConflictError;

@@ -4,6 +4,7 @@ const prisma = new PrismaClient();
 import { isTokenValid } from "../utils/jwt";
 import UnauthenticatedError from "../errors/unauthenticated-error";
 import attachCookiesToResponse from "../utils/jwt";
+import UnAuthorizedError from "../errors/unauthorized-error";
 
 const authenticateUser = async (
   req: Request,
@@ -44,15 +45,16 @@ const authenticateUser = async (
   }
 };
 
-// const authorizePermissions = (...roles) => {
-//   return (req, res, next) => {
-//     if (!roles.includes(req.user.role)) {
-//       throw new CustomError.UnauthorizedError(
-//         "Unauthorized to access this route"
-//       );
-//     }
-//     next();
-//   };
-// };
+export const authorizePermissions = (...roles: string[]) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      throw new UnAuthorizedError("User not authenticated");
+    }
+    if (!roles.includes(req.user.role)) {
+      throw new UnAuthorizedError("Unauthorized to access this route");
+    }
+    next();
+  };
+};
 
 export default authenticateUser;

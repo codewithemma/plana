@@ -183,7 +183,6 @@ const forgotPassword = async (req: Request, res: Response) => {
     email: newToken.email,
     emailType: "RESET",
     userId: resetToken,
-    token: "",
   });
 
   res.status(StatusCodes.OK).json({ message: "check mail for reset link" });

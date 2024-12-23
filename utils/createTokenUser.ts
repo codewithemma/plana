@@ -1,5 +1,5 @@
 import { User } from "../types/userType";
 
 export const createTokenUser = (user: User) => {
-  return { username: user.username, userId: user._id, role: user.role };
+  return { username: user.username, _id: user._id, role: user.role };
 };

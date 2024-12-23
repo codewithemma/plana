@@ -8,6 +8,7 @@ const PORT = 3000;
 
 // router
 import authRouter from "./routes/authRoutes";
+import userRouter from "./routes/userRoutes";
 
 //middleware
 import errorHandlerMiddleware from "./middleware/error-handler";
@@ -17,6 +18,7 @@ app.use(cookieParser(process.env.JWT_SECRET));
 
 // routes
 app.use("/api/v1/auth", authRouter);
+app.use("/api/v1/users", userRouter);
 
 app.use(errorHandlerMiddleware);
 

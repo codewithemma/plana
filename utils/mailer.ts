@@ -8,8 +8,8 @@ const prisma = new PrismaClient();
 interface SendOtpEmailParams {
   email: string;
   emailType: "VERIFY" | "RESET";
-  userId: string;
-  token: string;
+  userId: string | undefined;
+  token?: string;
 }
 
 export const sendOtpEmail = async ({
