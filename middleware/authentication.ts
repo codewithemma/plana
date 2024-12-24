@@ -22,7 +22,6 @@ const authenticateUser = async (
 
     // check for refreshtoken
     const payload = isTokenValid(planaRtoken);
-
     const existingRefreshToken = await prisma.token.findFirst({
       where: {
         userId: payload.user._id,

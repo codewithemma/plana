@@ -9,6 +9,7 @@ import bcrypt from "bcrypt";
 import UnauthenticatedError from "../errors/unauthenticated-error";
 import { sendOtpEmail } from "../utils/mailer";
 const prisma = new PrismaClient();
+
 const getAllUsers = async (req: Request, res: Response) => {
   const users = await prisma.user.findMany({
     select: {
@@ -23,13 +24,80 @@ const getAllUsers = async (req: Request, res: Response) => {
 };
 
 const getCurrentUser = async (req: Request, res: Response) => {
-  res.status(StatusCodes.OK).json({ user: req.user });
+  const user = await prisma.user.findFirst({
+    where: {
+      id: req.user?._id,
+    },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      phoneNumber: true,
+      username: true,
+      email: true,
+      role: true,
+      isVerified: true,
+    },
+  });
+  res.status(StatusCodes.OK).json({ user });
 };
 
 const updateCurrentUser = async (req: Request, res: Response) => {
-  const { username, newEmail, oldPassword, newPassword } = req.body;
+  const { username, firstName, lastName, phone, oldPassword, newPassword } =
+    req.body;
 
-  //todo:  validate req.body
+  const user = await prisma.user.findUnique({
+    where: {
+      id: req.user?._id,
+    },
+  });
+
+  if (!user) {
+    throw new NotFoundError("User not found");
+  }
+
+  let hashedPassword = user.password;
+
+  if (oldPassword) {
+    const isPasswordCorrect = await bcrypt.compare(oldPassword, hashedPassword);
+
+    if (!isPasswordCorrect) {
+      throw new UnauthenticatedError("Invalid Credentials");
+    }
+  }
+
+  if (newPassword) {
+    const salt = await bcrypt.genSalt(10);
+    hashedPassword = await bcrypt.hash(newPassword, salt);
+  }
+
+  const updatedUser = await prisma.user.update({
+    where: {
+      id: req.user?._id,
+    },
+    // Preserve current data if not updating
+    data: {
+      username: username || user.username,
+      password: hashedPassword,
+      firstName: firstName || user.firstName,
+      lastName: lastName || user.lastName,
+      phoneNumber: phone || user.phoneNumber,
+    },
+  });
+
+  const tokenUser = createTokenUser({
+    _id: updatedUser.id,
+    username: updatedUser.username,
+    role: updatedUser.role,
+  });
+
+  attachCookiesToResponse({ res, user: tokenUser, refreshToken: "" });
+
+  res.status(StatusCodes.OK).json({ message: "User updated successfully" });
+};
+
+const updateCurrentUserEmail = async (req: Request, res: Response) => {
+  const { newEmail } = req.body;
 
   const existingUser = await prisma.user.findFirst({
     where: {
@@ -42,7 +110,6 @@ const updateCurrentUser = async (req: Request, res: Response) => {
       "This email is already associated with another account"
     );
   }
-
   const user = await prisma.user.findUnique({
     where: {
       id: req.user?._id,
@@ -53,44 +120,39 @@ const updateCurrentUser = async (req: Request, res: Response) => {
     throw new NotFoundError("User not found");
   }
 
-  const isPasswordCorrect = await bcrypt.compare(oldPassword, user.password);
-  if (!isPasswordCorrect) {
-    throw new UnauthenticatedError("Invalid Credentials");
-  }
-  const salt = await bcrypt.genSalt(10);
-  const hashedPassword = await bcrypt.hash(newPassword, salt);
-
   const updatedUser = await prisma.user.update({
     where: {
-      id: req.user?._id,
+      id: user.id,
     },
     data: {
-      username: username || user.username, // Preserve current username if not updating
-      email: newEmail || user.email, // Preserve current email if not updating
-      password: hashedPassword || user.password,
-      isVerified: newEmail ? false : user.isVerified, // Toggle verification only if email changes
+      email: newEmail, // Preserve current email if not updating
+      isVerified: false, // Toggle verification only if email changes
     },
   });
 
-  const tokenUser = createTokenUser(updatedUser);
-  attachCookiesToResponse({ res, user: tokenUser, refreshToken: "" });
+  const userToken = await prisma.nonce.create({
+    data: {
+      email: newEmail,
+      purpose: "UPDATE",
+      uid: user.id,
+    },
+  });
 
-  // todo: create token for user before sending mail
-
-  // send verification mail
-  newEmail
-    ? await sendOtpEmail({
-        email: newEmail,
-        emailType: "VERIFY",
-        userId: req.user?._id,
-      })
-    : null;
+  await sendOtpEmail({
+    email: userToken.email,
+    emailType: "UPDATE",
+    userId: userToken.id,
+  });
 
   res.status(StatusCodes.OK).json({
-    message: newEmail
-      ? `Check your inbox to verify email`
-      : "user updated successfully",
+    message:
+      "We will send a confrimation email to your new email address. The email address change will be effective as soon as you confirm it using the link in the verification email.",
   });
 };
 
-export { getAllUsers, getCurrentUser, updateCurrentUser };
+export {
+  getAllUsers,
+  getCurrentUser,
+  updateCurrentUser,
+  updateCurrentUserEmail,
+};

@@ -27,6 +27,13 @@ export const generateEmailTemplate = (
         <a href="${link}" style="margin-top: 5px; text-decoration: none;">${link}</a>
       `;
     buttonHtml = ""; // No button needed for OTP verification
+  } else {
+    messageContent = `
+    <p>Thank you for signing up for a Mobosure account. To complete your registration, please use the OTP code below:</p>
+    <p>Please enter this code on the verification page to activate your account.</p>
+    <a href="${link}" style="margin-top: 5px; text-decoration: none;">${link}</a>
+  `;
+    buttonHtml = ""; // No button needed for OTP verification
   }
 
   return `

@@ -1,9 +1,11 @@
 import { Request, Response, NextFunction } from "express";
 import {
+  EmailUpdate,
   UserForgotPassword,
   UserLogin,
   UserResetPassword,
   UserSchema,
+  UserUpdate,
   UserVerifySchema,
 } from "../lib/zod";
 
@@ -49,5 +51,25 @@ export const validateLogin = (
   next: NextFunction
 ) => {
   UserLogin.parse(req.body);
+  next();
+};
+
+// user validation
+
+export const validateUserUpdate = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  UserUpdate.parse(req.body);
+  next();
+};
+
+export const ValidateEmailUpdate = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  EmailUpdate.parse(req.body);
   next();
 };

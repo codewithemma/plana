@@ -49,15 +49,18 @@ const register = async (req: Request, res: Response) => {
     token,
   });
 
-  res.status(StatusCodes.OK).json({ message: "Please verify your email" });
+  res.status(StatusCodes.OK).json({
+    message:
+      "We have sent a confirmation email to your email address. Please follow the instructions in the confirmation  email in order to activate your account ",
+  });
 };
 
 const verifyEmail = async (req: Request, res: Response) => {
-  const { otp, uid } = req.body;
+  const { otp, quid } = req.body;
 
   const user = await prisma.nonce.findFirst({
     where: {
-      uid,
+      uid: quid,
       token: otp,
     },
   });
@@ -84,13 +87,16 @@ const verifyEmail = async (req: Request, res: Response) => {
   if (savedUser) {
     await prisma.nonce.deleteMany({
       where: {
-        uid,
+        uid: quid,
         purpose: "VERIFY",
       },
     });
   }
 
-  res.status(StatusCodes.OK).json({ message: "Email verified successfully" });
+  res.status(StatusCodes.OK).json({
+    message:
+      "Your account has been confirmed successfull. You can now proceed and sign in to your new account.",
+  });
 };
 
 const login = async (req: Request, res: Response) => {
@@ -166,7 +172,7 @@ const forgotPassword = async (req: Request, res: Response) => {
   });
 
   if (!emailExist) {
-    throw new BadRequestError("something went wrong");
+    throw new BadRequestError("Something went wrong");
   }
 
   const newToken = await prisma.nonce.create({
@@ -189,7 +195,7 @@ const forgotPassword = async (req: Request, res: Response) => {
 };
 
 const resetPassword = async (req: Request, res: Response) => {
-  const { id, email, password } = req.body;
+  const { userId, email, password } = req.body;
 
   const tokenUser = await prisma.nonce.findFirst({
     where: {
@@ -207,7 +213,7 @@ const resetPassword = async (req: Request, res: Response) => {
 
   const hashedTokenUser = hashString(tokenUser.id);
 
-  if (id !== hashedTokenUser) {
+  if (userId !== hashedTokenUser) {
     throw new BadRequestError("Something went wrong");
   }
 
@@ -235,6 +241,41 @@ const resetPassword = async (req: Request, res: Response) => {
   res.status(StatusCodes.OK).json({ message: "Password reset successful" });
 };
 
+const updateEmail = async (req: Request, res: Response) => {
+  const { verificationToken, email } = req.body;
+
+  const user = await prisma.nonce.findFirst({
+    where: {
+      email,
+      token: verificationToken,
+    },
+  });
+
+  if (!user) {
+    throw new UnauthenticatedError("You are unauthorized to view this page");
+  }
+
+  const updatedUser = await prisma.user.update({
+    where: {
+      email,
+    },
+    data: {
+      isVerified: true,
+    },
+  });
+
+  if (updatedUser) {
+    await prisma.nonce.deleteMany({
+      where: {
+        token: verificationToken,
+        purpose: "UPDATE",
+      },
+    });
+  }
+
+  res.status(StatusCodes.OK).json({ message: "Email updated Sucessfully" });
+};
+
 const logout = async (req: Request, res: Response) => {
   await prisma.token.deleteMany({
     where: {
@@ -252,4 +293,12 @@ const logout = async (req: Request, res: Response) => {
   res.status(StatusCodes.OK).json({ msg: "user logged out!" });
 };
 
-export { register, verifyEmail, login, forgotPassword, resetPassword, logout };
+export {
+  register,
+  verifyEmail,
+  login,
+  forgotPassword,
+  resetPassword,
+  updateEmail,
+  logout,
+};
