@@ -14,39 +14,79 @@ datasource db {
 }
 
 model User {
-  id    String  @id @default(auto()) @map("_id") @db.ObjectId
-  firstName String?
-  lastName String?
-  phoneNumber String? @unique
-  email String  @unique
-  username  String
-  password String
-  role      String   @default("ATTENDEE")
-  isVerified Boolean @default(false)
-  tokens    Token[]  @relation("UserTokens")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  firstName   String?
+  lastName    String?
+  phoneNumber String?  @unique
+  email       String   @unique
+  username    String
+  password    String
+  role        String   @default("ATTENDEE")
+  isVerified  Boolean  @default(false)
+  tokens      Token[]  @relation("UserTokens")
+  events      Event[]  @relation("UserEvents")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
-model Nonce{
-  id    String  @id @default(auto()) @map("_id") @db.ObjectId
-  uid String
-  email String
-  purpose String
-  token String?
+model Nonce {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  uid       String
+  email     String
+  purpose   String
+  token     String?
   expiresAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
 
 model Token {
-  id    String  @id @default(auto()) @map("_id") @db.ObjectId
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
   refreshToken String
-  ip String
-  userAgent String
+  ip           String
+  userAgent    String
   isValid      Boolean  @default(true)
-  userId     String   @db.ObjectId
-  user       User     @relation("UserTokens", fields: [userId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  userId       String   @db.ObjectId
+  user         User     @relation("UserTokens", fields: [userId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Event {
+  id          String     @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String
+  eventType   String
+  image       String
+  location    String
+  fee         String
+  tags        String[]
+  duration    String
+  date        DateTime
+  attendees   Attendee[]
+  organizerId String     @db.ObjectId
+  organizer   User       @relation(fields: [organizerId], references: [id], name: "UserEvents")
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  Speaker     Speaker[]
+}
+
+model Attendee {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  name       String // Name of the attendee
+  email      String // Email of the attendee
+  ticketType String // Ticket type (e.g., Early Bird, General Admission)
+  status     String // Attendee status (e.g., Confirmed, Pending)
+  eventId    String @db.ObjectId
+  event      Event  @relation(fields: [eventId], references: [id])
+}
+
+model Speaker {
+  id       String  @id @default(auto()) @map("_id") @db.ObjectId
+  name     String // Name of the speaker or performer
+  title    String // Title or role of the speaker (e.g., "Keynote Speaker")
+  bio      String // Biography of the speaker
+  imageUrl String? // Image URL for the speaker (optional)
+  eventId  String  @db.ObjectId // Foreign key for the event
+  event    Event   @relation(fields: [eventId], references: [id])
 }
