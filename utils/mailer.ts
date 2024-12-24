@@ -100,6 +100,6 @@ export const sendOtpEmail = async ({
     return mailResponse;
   } catch (error) {
     console.error("Error in sendOtpEmail:", error); // Log the error
-    throw new BadRequestError("Something went wrong");
+    throw new BadRequestError("Something went wrong while sending email");
   }
 };

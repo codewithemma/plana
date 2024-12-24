@@ -9,6 +9,7 @@ import {
   updateEmail,
 } from "../controllers/authController";
 import {
+  validateEmailUpdate,
   validateForgotPassword,
   validateLogin,
   validateRegister,
@@ -23,7 +24,7 @@ router.post("/verify-email", validateVerifyEmail, verifyEmail);
 router.post("/login", validateLogin, login);
 router.post("/forgot-password", validateForgotPassword, forgotPassword);
 router.post("/reset-password", validateResetPassword, resetPassword);
-router.post("/update-email", updateEmail);
+router.post("/update-email", validateEmailUpdate, updateEmail);
 router.post("/logout", authenticateUser, logout);
 
 export default router;

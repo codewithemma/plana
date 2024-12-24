@@ -255,23 +255,23 @@ const updateEmail = async (req: Request, res: Response) => {
     throw new UnauthenticatedError("You are unauthorized to view this page");
   }
 
-  const updatedUser = await prisma.user.update({
-    where: {
-      email,
-    },
-    data: {
-      isVerified: true,
-    },
-  });
+  await prisma.$transaction(async (tx) => {
+    // Update user verification status
+    await tx.user.update({
+      where: {
+        id: user.uid,
+      },
+      data: { email, isVerified: true },
+    });
 
-  if (updatedUser) {
-    await prisma.nonce.deleteMany({
+    // Delete used nonce
+    await tx.nonce.deleteMany({
       where: {
         token: verificationToken,
         purpose: "UPDATE",
       },
     });
-  }
+  });
 
   res.status(StatusCodes.OK).json({ message: "Email updated Sucessfully" });
 };

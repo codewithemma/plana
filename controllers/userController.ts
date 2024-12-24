@@ -120,28 +120,32 @@ const updateCurrentUserEmail = async (req: Request, res: Response) => {
     throw new NotFoundError("User not found");
   }
 
-  const updatedUser = await prisma.user.update({
-    where: {
-      id: user.id,
-    },
-    data: {
-      email: newEmail, // Preserve current email if not updating
-      isVerified: false, // Toggle verification only if email changes
-    },
-  });
-
-  const userToken = await prisma.nonce.create({
-    data: {
-      email: newEmail,
-      purpose: "UPDATE",
-      uid: user.id,
-    },
+  const nonce = await prisma.$transaction(async (tx) => {
+    // Create a nonce for email verification
+    const nonce = await tx.nonce.create({
+      data: {
+        email: newEmail,
+        purpose: "UPDATE",
+        uid: user.id,
+        expiresAt: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
+      },
+    });
+    // Mark the user as unverified
+    await tx.user.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        isVerified: false,
+      },
+    });
+    return nonce;
   });
 
   await sendOtpEmail({
-    email: userToken.email,
+    email: newEmail,
     emailType: "UPDATE",
-    userId: userToken.id,
+    userId: nonce.id,
   });
 
   res.status(StatusCodes.OK).json({

@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import {
   EmailUpdate,
+  UserEmailUpdate,
   UserForgotPassword,
   UserLogin,
   UserResetPassword,
@@ -51,6 +52,15 @@ export const validateLogin = (
   next: NextFunction
 ) => {
   UserLogin.parse(req.body);
+  next();
+};
+
+export const validateEmailUpdate = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  UserEmailUpdate.parse(req.body);
   next();
 };
 

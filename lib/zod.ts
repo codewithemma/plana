@@ -12,7 +12,7 @@ export const UserSchema = z.object({
 });
 
 export const UserVerifySchema = z.object({
-  uid: z.string().regex(/^[A-Za-z0-9+/=]*$/, "Invalid Base64 string"),
+  quid: z.string().regex(/^[A-Za-z0-9+/=]*$/, "Invalid Base64 string"),
   otp: z.string().regex(/^\d{6}$/, "OTP must be a 6-digit string"),
 });
 
@@ -31,6 +31,10 @@ export const UserResetPassword = z.object({
 export const UserLogin = z.object({
   email: z.string().email({ message: "Invalid email address" }),
   password: z.string(),
+});
+
+export const UserEmailUpdate = z.object({
+  email: z.string().email({ message: "Invalid email address" }),
 });
 
 // USER VALIDATION
