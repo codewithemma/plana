@@ -23,6 +23,8 @@ model User {
   password    String
   role        String   @default("ATTENDEE")
   isVerified  Boolean  @default(false)
+  hasPremiumPlan        Boolean   @default(false) 
+  subscriptionExpiresAt DateTime?    
   tokens      Token[]  @relation("UserTokens")
   events      Event[]  @relation("UserEvents")
   createdAt   DateTime @default(now())

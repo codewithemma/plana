@@ -10,6 +10,7 @@ const PORT = 3000;
 import authRouter from "./routes/authRoutes";
 import userRouter from "./routes/userRoutes";
 import eventRouter from "./routes/eventRoutes";
+import paymentSubscriptionRouter from "./routes/paymentSubscriptionRoutes";
 
 //middleware
 import errorHandlerMiddleware from "./middleware/error-handler";
@@ -22,6 +23,7 @@ app.use(cookieParser(process.env.JWT_SECRET));
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/events", eventRouter);
+app.use("/api/v1/payments", paymentSubscriptionRouter);
 
 app.use(errorHandlerMiddleware);
 app.use(notFound);
