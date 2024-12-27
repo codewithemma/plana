@@ -1,12 +1,9 @@
 import express from "express";
-import {
-  initiatePayment,
-  verifyPayment,
-} from "../controllers/paymentSubscriptionController";
+import { initiatePayment } from "../controllers/paymentSubscriptionController";
+import paymentWebhook from "../webhooks/paymentSubscription";
 const router = express.Router();
 
 router.post("/initiate", initiatePayment);
-router.post("/verify", verifyPayment);
-// router.get("/status", getSubscriptionStatus);
+router.post("/webhook", paymentWebhook);
 
 export default router;

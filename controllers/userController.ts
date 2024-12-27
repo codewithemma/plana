@@ -1,5 +1,6 @@
-import { PrismaClient } from "@prisma/client";
 import { Request, Response } from "express";
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
 import { StatusCodes } from "http-status-codes";
 import ConflictError from "../errors/conflict";
 import attachCookiesToResponse from "../utils/jwt";
@@ -8,7 +9,6 @@ import { createTokenUser } from "../utils/createTokenUser";
 import bcrypt from "bcrypt";
 import UnauthenticatedError from "../errors/unauthenticated-error";
 import { sendOtpEmail } from "../utils/mailer";
-const prisma = new PrismaClient();
 
 const getAllUsers = async (req: Request, res: Response) => {
   const users = await prisma.user.findMany({
