@@ -4,6 +4,7 @@ import crypto from "crypto";
 import BadRequestError from "../errors/bad-request";
 import { verifyPayment } from "../controllers/paymentSubscriptionController";
 import { PrismaClient } from "@prisma/client";
+import attachCookiesToResponse from "../utils/jwt";
 import UnauthenticatedError from "../errors/unauthenticated-error";
 const prisma = new PrismaClient();
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
@@ -65,11 +66,21 @@ const paymentWebhook = async (req: Request, res: Response) => {
       throw new BadRequestError("Payment verification failed");
     }
 
-    const userId = verification.data.metadata.id;
+    const userId: string = verification.data.metadata.id;
 
     await prisma.user.update({
       where: { id: userId },
-      data: { hasPremiumPlan: true },
+      data: { role: "ORGANIZER", hasPremiumPlan: true },
+    });
+
+    attachCookiesToResponse({
+      res,
+      user: {
+        _id: userId,
+        role: "ORGANIZER",
+        username: verification.metadata.data.username,
+      },
+      refreshToken: "",
     });
   }
   res.sendStatus(200);
