@@ -21,7 +21,7 @@ export const UserForgotPassword = z.object({
 });
 
 export const UserResetPassword = z.object({
-  id: z.string(),
+  userId: z.string(),
   email: z.string().email({ message: "Invalid email address" }),
   password: z
     .string()

@@ -7,7 +7,6 @@ const premiumFeatureMiddleware = async (
   next: NextFunction
 ) => {
   const user = req.user;
-  console.log(user);
 
   if (!user || user.role !== "ORGANIZER") {
     throw new UnauthenticatedError(

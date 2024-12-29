@@ -8,7 +8,7 @@ import NotFoundError from "../errors/not-found";
 import { createTokenUser } from "../utils/createTokenUser";
 import bcrypt from "bcrypt";
 import UnauthenticatedError from "../errors/unauthenticated-error";
-import { sendOtpEmail } from "../utils/mailer";
+import sendUpdateMail from "../utils/sendUpdateMail";
 
 const getAllUsers = async (req: Request, res: Response) => {
   const users = await prisma.user.findMany({
@@ -142,11 +142,7 @@ const updateCurrentUserEmail = async (req: Request, res: Response) => {
     return nonce;
   });
 
-  await sendOtpEmail({
-    email: newEmail,
-    emailType: "UPDATE",
-    userId: nonce.id,
-  });
+  await sendUpdateMail({ email: newEmail, userId: nonce.id });
 
   res.status(StatusCodes.OK).json({
     message:

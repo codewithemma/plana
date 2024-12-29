@@ -73,6 +73,8 @@ const paymentWebhook = async (req: Request, res: Response) => {
       data: { role: "ORGANIZER", hasPremiumPlan: true },
     });
 
+    //  not working yet
+
     attachCookiesToResponse({
       res,
       user: {

@@ -4,13 +4,14 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 import bcrypt from "bcrypt";
 import crypto from "crypto";
-import { sendOtpEmail } from "../utils/mailer";
 import UnauthenticatedError from "../errors/unauthenticated-error";
 import BadRequestError from "../errors/bad-request";
 import decodeBase64 from "../utils/decodeBase64";
 import hashString from "../utils/createHash";
 import { createTokenUser } from "../utils/createTokenUser";
 import attachCookiesToResponse from "../utils/jwt";
+import sendResetPasswordEmail from "../utils/sendResetMail";
+import sendVerificationMail from "../utils/sendVerifcationMail";
 
 const register = async (req: Request, res: Response) => {
   const { username, email, password } = req.body;
@@ -42,9 +43,8 @@ const register = async (req: Request, res: Response) => {
     },
   });
 
-  await sendOtpEmail({
+  await sendVerificationMail({
     email: userToken.email,
-    emailType: "VERIFY",
     userId: userToken.id,
     token,
   });
@@ -88,6 +88,7 @@ const verifyEmail = async (req: Request, res: Response) => {
     await prisma.nonce.deleteMany({
       where: {
         uid: quid,
+        token: otp,
         purpose: "VERIFY",
       },
     });
@@ -185,9 +186,8 @@ const forgotPassword = async (req: Request, res: Response) => {
 
   const resetToken = hashString(newToken.id);
 
-  await sendOtpEmail({
+  await sendResetPasswordEmail({
     email: newToken.email,
-    emailType: "RESET",
     userId: resetToken,
   });
 
