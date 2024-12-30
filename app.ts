@@ -3,6 +3,7 @@ dotenv.config();
 import "express-async-errors";
 import express from "express";
 import cookieParser from "cookie-parser";
+import fileUpload from "express-fileupload";
 const app = express();
 const PORT = 3000;
 
@@ -18,6 +19,7 @@ import notFound from "./middleware/notFound";
 
 app.use(express.json());
 app.use(cookieParser(process.env.JWT_SECRET));
+app.use(fileUpload({ useTempFiles: true }));
 
 // routes
 app.use("/api/v1/auth", authRouter);

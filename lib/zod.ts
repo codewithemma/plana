@@ -74,3 +74,15 @@ export const UserUpdate = z.object({
 export const EmailUpdate = z.object({
   newEmail: z.string().email({ message: "Invalid email address" }),
 });
+
+// EVENT VALIDATION
+export const CreateEvent = z.object({
+  title: z.string(),
+  description: z.string(),
+  eventType: z.string(),
+  location: z.string(),
+  fee: z.string(),
+  tags: z.string(),
+  duration: z.string(),
+  date: z.string(),
+});

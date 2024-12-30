@@ -1,7 +1,13 @@
 import express, { Router } from "express";
-import { createEvent, getAllEvents } from "../controllers/eventController";
+import {
+  createEvent,
+  deleteEvent,
+  getAllEvents,
+  updateEvent,
+} from "../controllers/eventController";
 import authenticateUser from "../middleware/authentication";
 import premiumFeatureMiddleware from "../middleware/premiumFeatureMiddleware";
+import { ValidateCreateEvent } from "../middleware/validationMiddleware";
 
 const router: Router = express.Router();
 
@@ -10,7 +16,10 @@ router.post(
   "/create",
   authenticateUser,
   premiumFeatureMiddleware,
-  /* REQ.BODY VALIDATION HERE */ createEvent
+  ValidateCreateEvent,
+  createEvent
 );
+router.patch("/update-event", authenticateUser, updateEvent);
+router.delete("/delete-event", authenticateUser, deleteEvent);
 
 export default router;

@@ -67,10 +67,10 @@ model Event {
   date        DateTime
   attendees   Attendee[]
   organizerId String     @db.ObjectId
-  organizer   User       @relation(fields: [organizerId], references: [id], name: "UserEvents")
+  organizer   User       @relation("UserEvents", fields: [organizerId], references: [id])
+  speakers     Speaker[]
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
-  Speaker     Speaker[]
 }
 
 model Attendee {
