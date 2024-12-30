@@ -53,7 +53,9 @@ const updateCurrentUser = async (req: Request, res: Response) => {
   });
 
   if (!user) {
-    throw new NotFoundError("User not found");
+    throw new NotFoundError(
+      "User not found. Please check your details or sign up."
+    );
   }
 
   let hashedPassword = user.password;
@@ -93,7 +95,9 @@ const updateCurrentUser = async (req: Request, res: Response) => {
 
   attachCookiesToResponse({ res, user: tokenUser, refreshToken: "" });
 
-  res.status(StatusCodes.OK).json({ message: "User updated successfully" });
+  res
+    .status(StatusCodes.OK)
+    .json({ message: "User details have been successfully updated." });
 };
 
 const updateCurrentUserEmail = async (req: Request, res: Response) => {
@@ -115,11 +119,11 @@ const updateCurrentUserEmail = async (req: Request, res: Response) => {
       id: req.user?._id,
     },
   });
-
   if (!user) {
-    throw new NotFoundError("User not found");
+    throw new NotFoundError(
+      "User not found. Please check your details or sign up."
+    );
   }
-
   const nonce = await prisma.$transaction(async (tx) => {
     // Create a nonce for email verification
     const nonce = await tx.nonce.create({

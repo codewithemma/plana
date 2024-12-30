@@ -23,7 +23,9 @@ const register = async (req: Request, res: Response) => {
   });
 
   if (emailAlreadyExists) {
-    throw new BadRequestError("Email already exists");
+    throw new BadRequestError(
+      "The email address is already associated with another account."
+    );
   }
 
   const data = {
@@ -96,7 +98,7 @@ const verifyEmail = async (req: Request, res: Response) => {
 
   res.status(StatusCodes.OK).json({
     message:
-      "Your account has been confirmed successfull. You can now proceed and sign in to your new account.",
+      "Your account has been confirmed successfully. You can now proceed and sign in to your new account.",
   });
 };
 
@@ -110,13 +112,15 @@ const login = async (req: Request, res: Response) => {
   });
 
   if (!user) {
-    throw new BadRequestError("No user found, please sign up");
+    throw new BadRequestError(
+      "User not found. Please sign up to create an account."
+    );
   }
 
   const comparePassword = await bcrypt.compare(password, user.password);
 
   if (!comparePassword) {
-    throw new BadRequestError("Incorrect email or password");
+    throw new BadRequestError("Invalid email or password. Please try again.");
   }
 
   const tokenUser = createTokenUser({
@@ -173,7 +177,9 @@ const forgotPassword = async (req: Request, res: Response) => {
   });
 
   if (!emailExist) {
-    throw new BadRequestError("Something went wrong");
+    throw new BadRequestError(
+      "If an account with this email exists, a password reset link has been sent."
+    );
   }
 
   const newToken = await prisma.nonce.create({
@@ -191,7 +197,10 @@ const forgotPassword = async (req: Request, res: Response) => {
     userId: resetToken,
   });
 
-  res.status(StatusCodes.OK).json({ message: "check mail for reset link" });
+  res.status(StatusCodes.OK).json({
+    message:
+      "If an account with this email exists, a password reset link has been sent.",
+  });
 };
 
 const resetPassword = async (req: Request, res: Response) => {
@@ -208,13 +217,13 @@ const resetPassword = async (req: Request, res: Response) => {
   });
 
   if (!tokenUser) {
-    throw new UnauthenticatedError("You are not authorized to view this page");
+    throw new UnauthenticatedError("You are unauthorized to view this page");
   }
 
   const hashedTokenUser = hashString(tokenUser.id);
 
   if (userId !== hashedTokenUser) {
-    throw new BadRequestError("Something went wrong");
+    throw new BadRequestError("Invalid credentials");
   }
 
   const salt = await bcrypt.genSalt(10);
@@ -238,7 +247,9 @@ const resetPassword = async (req: Request, res: Response) => {
     });
   }
 
-  res.status(StatusCodes.OK).json({ message: "Password reset successful" });
+  res
+    .status(StatusCodes.OK)
+    .json({ message: "Your password has been successfully reset" });
 };
 
 const updateEmail = async (req: Request, res: Response) => {
@@ -273,7 +284,9 @@ const updateEmail = async (req: Request, res: Response) => {
     });
   });
 
-  res.status(StatusCodes.OK).json({ message: "Email updated Sucessfully" });
+  res
+    .status(StatusCodes.OK)
+    .json({ message: "Your email has been successfully updated" });
 };
 
 const logout = async (req: Request, res: Response) => {

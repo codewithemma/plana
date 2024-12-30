@@ -16,7 +16,9 @@ const initiatePayment = async (req: Request, res: Response) => {
   });
 
   if (!user) {
-    throw new NotFoundError("User not found");
+    throw new NotFoundError(
+      "User not found. Please check your details or sign up."
+    );
   }
 
   const response = await axios.post(
@@ -25,9 +27,9 @@ const initiatePayment = async (req: Request, res: Response) => {
       email,
       amount: amount * 100,
       metadata: {
-        id: user.id, // Custom data for your use case
-        userName: user.username, // Optional: Add other relevant information
-        purpose: "Premium Subscription payment", // Optional: Describe the transaction purpose
+        id: user.id,
+        userName: user.username,
+        purpose: "Premium Subscription payment",
       },
     },
     {
@@ -46,7 +48,9 @@ const initiatePayment = async (req: Request, res: Response) => {
 
 const verifyPayment = async (reference: string) => {
   if (!reference) {
-    throw new BadRequestError("Transaction reference is required.");
+    throw new BadRequestError(
+      "Transaction reference is required. Please provide a valid reference."
+    );
   }
   const response = await axios.get(
     `${process.env.PAYSTACK_BASE_URL}/transaction/verify/${reference}`,
