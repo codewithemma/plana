@@ -35,12 +35,12 @@ const createEvent = async (req: Request, res: Response) => {
 
   const organizer = req.user?._id;
   if (!organizer) {
-    throw new UnAuthorizedError("You are forbidden to make such request");
+    throw new UnAuthorizedError("You must be logged in to create an event.");
   }
 
   // Validate image file
   if (!req.files || !req.files.image) {
-    throw new BadRequestError("Image file is required");
+    throw new BadRequestError("Please upload an image file for the event.");
   }
 
   // `tags` will come as a comma-separated string if sent via FormData
@@ -61,7 +61,9 @@ const createEvent = async (req: Request, res: Response) => {
   fs.unlinkSync(imageFile.tempFilePath);
 
   if (!uploadResponse || !uploadResponse.secure_url) {
-    throw new BadRequestError("Something went wrong while uploading image");
+    throw new BadRequestError(
+      "Failed to upload the image. Please try again later."
+    );
   }
 
   const event = await prisma.event.create({
