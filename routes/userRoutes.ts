@@ -17,7 +17,7 @@ const router: Router = express.Router();
 
 router.get("/", authenticateUser, authorizePermissions("ADMIN"), getAllUsers);
 router.get("/current-user", authenticateUser, getCurrentUser);
-router.patch(
+router.put(
   "/update-user",
   authenticateUser,
   validateUserUpdate,

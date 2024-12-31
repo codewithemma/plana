@@ -3,23 +3,25 @@ import {
   createEvent,
   deleteEvent,
   getAllEvents,
+  getSingleEvent,
   updateEvent,
 } from "../controllers/eventController";
 import authenticateUser from "../middleware/authentication";
 import premiumFeatureMiddleware from "../middleware/premiumFeatureMiddleware";
-import { ValidateCreateEvent } from "../middleware/validationMiddleware";
+import { ValidateEvent } from "../middleware/validationMiddleware";
 
 const router: Router = express.Router();
 
 router.get("/", authenticateUser, getAllEvents);
+router.get("/:id", authenticateUser, getSingleEvent);
 router.post(
   "/create",
   authenticateUser,
   premiumFeatureMiddleware,
-  ValidateCreateEvent,
+  ValidateEvent,
   createEvent
 );
-router.patch("/update-event", authenticateUser, updateEvent);
-router.delete("/delete-event", authenticateUser, deleteEvent);
+router.put("/update-event/:id", authenticateUser, ValidateEvent, updateEvent);
+router.delete("/delete-event/:id", authenticateUser, deleteEvent);
 
 export default router;

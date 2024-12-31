@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import {
-  CreateEvent,
+  Event,
   EmailUpdate,
   UserEmailUpdate,
   UserForgotPassword,
@@ -86,11 +86,11 @@ export const ValidateEmailUpdate = (
 };
 
 // event validation
-export const ValidateCreateEvent = (
+export const ValidateEvent = (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  CreateEvent.parse(req.body);
+  Event.parse(req.body);
   next();
 };

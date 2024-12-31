@@ -4,11 +4,11 @@ const prisma = new PrismaClient();
 import { StatusCodes } from "http-status-codes";
 import ConflictError from "../errors/conflict";
 import attachCookiesToResponse from "../utils/jwt";
-import NotFoundError from "../errors/not-found";
 import { createTokenUser } from "../utils/createTokenUser";
 import bcrypt from "bcrypt";
 import UnauthenticatedError from "../errors/unauthenticated-error";
 import sendUpdateMail from "../utils/sendUpdateMail";
+import UnAuthorizedError from "../errors/unauthorized-error";
 
 const getAllUsers = async (req: Request, res: Response) => {
   const users = await prisma.user.findMany({
@@ -53,9 +53,7 @@ const updateCurrentUser = async (req: Request, res: Response) => {
   });
 
   if (!user) {
-    throw new NotFoundError(
-      "User not found. Please check your details or sign up."
-    );
+    throw new UnAuthorizedError("User not authenticated. Please log in.");
   }
 
   let hashedPassword = user.password;
@@ -84,6 +82,7 @@ const updateCurrentUser = async (req: Request, res: Response) => {
       firstName: firstName || user.firstName,
       lastName: lastName || user.lastName,
       phoneNumber: phone || user.phoneNumber,
+      updatedAt: new Date(),
     },
   });
 
@@ -120,9 +119,7 @@ const updateCurrentUserEmail = async (req: Request, res: Response) => {
     },
   });
   if (!user) {
-    throw new NotFoundError(
-      "User not found. Please check your details or sign up."
-    );
+    throw new UnAuthorizedError("User not authenticated. Please log in.");
   }
   const nonce = await prisma.$transaction(async (tx) => {
     // Create a nonce for email verification

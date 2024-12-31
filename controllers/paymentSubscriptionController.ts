@@ -3,7 +3,7 @@ import { StatusCodes } from "http-status-codes";
 import { PrismaClient } from "@prisma/client";
 import axios from "axios";
 import BadRequestError from "../errors/bad-request";
-import NotFoundError from "../errors/not-found";
+import UnAuthorizedError from "../errors/unauthorized-error";
 const prisma = new PrismaClient();
 
 const initiatePayment = async (req: Request, res: Response) => {
@@ -16,9 +16,7 @@ const initiatePayment = async (req: Request, res: Response) => {
   });
 
   if (!user) {
-    throw new NotFoundError(
-      "User not found. Please check your details or sign up."
-    );
+    throw new UnAuthorizedError("User not authenticated. Please log in.");
   }
 
   const response = await axios.post(

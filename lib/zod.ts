@@ -76,13 +76,18 @@ export const EmailUpdate = z.object({
 });
 
 // EVENT VALIDATION
-export const CreateEvent = z.object({
-  title: z.string(),
-  description: z.string(),
-  eventType: z.string(),
-  location: z.string(),
+export const Event = z.object({
+  title: z.string().min(1, "Title is required").max(100, "Title is too long"),
+  description: z
+    .string()
+    .min(1, "Description is required")
+    .max(500, "Description is too long"),
+  eventType: z.string().min(1, "Event type is required"),
+  location: z.string().min(1, "Location is required"),
   fee: z.string(),
   tags: z.string(),
-  duration: z.string(),
-  date: z.string(),
+  duration: z.string().min(1, "Duration is required"),
+  date: z.string().refine((value) => !isNaN(Date.parse(value)), {
+    message: "Invalid date format",
+  }),
 });
