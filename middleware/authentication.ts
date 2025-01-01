@@ -30,7 +30,9 @@ const authenticateUser = async (
     });
 
     if (!existingRefreshToken || !existingRefreshToken?.isValid) {
-      throw new UnauthenticatedError("Authentication Invalid");
+      throw new UnauthenticatedError(
+        "Authentication failed. Please log in and try again."
+      );
     }
     attachCookiesToResponse({
       res,
@@ -40,7 +42,9 @@ const authenticateUser = async (
     req.user = payload.user;
     next();
   } catch (error) {
-    throw new UnauthenticatedError("Authentication Invalid");
+    throw new UnauthenticatedError(
+      "Authentication failed. Please log in and try again."
+    );
   }
 };
 

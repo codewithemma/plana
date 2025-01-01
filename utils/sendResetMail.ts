@@ -1,5 +1,5 @@
+import sendEmail from "../config/nodemailer";
 import { MailProp } from "../types/mailVerificationTypes";
-import sendEmail from "./sendMail";
 
 const headerColor = "#D9D9D9";
 const logoUrl = "/assets/brand.svg";

@@ -1,7 +1,7 @@
-import sendEmail from "./sendMail";
 import { PrismaClient } from "@prisma/client";
 import crypto from "crypto";
 import { MailProp } from "../types/mailVerificationTypes";
+import sendEmail from "../config/nodemailer";
 const prisma = new PrismaClient();
 const headerColor = "#D9D9D9";
 const logoUrl = "/assets/brand.svg";

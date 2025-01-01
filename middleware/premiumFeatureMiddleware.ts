@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import UnauthenticatedError from "../errors/unauthenticated-error";
+import UnAuthorizedError from "../errors/unauthorized-error";
 
 const premiumFeatureMiddleware = async (
   req: Request,
@@ -9,8 +9,8 @@ const premiumFeatureMiddleware = async (
   const user = req.user;
 
   if (!user || user.role !== "ORGANIZER") {
-    throw new UnauthenticatedError(
-      "You must have a premium subscription to access this feature."
+    throw new UnAuthorizedError(
+      "Access denied. A premium subscription is required to use this feature."
     );
   }
 
