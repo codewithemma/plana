@@ -138,7 +138,7 @@ const updateEvent = async (req: Request, res: Response) => {
   }
 
   if (event.organizerId !== userId) {
-    throw new UnAuthorizedError("You are not authorized to update this event.");
+    throw new UnAuthorizedError("You are unauthorized to update this event.");
   }
 
   let updatedImageUrl = event.image;
@@ -202,7 +202,7 @@ const deleteEvent = async (req: Request, res: Response) => {
   });
 
   if (!getOrganizer || getOrganizer.organizerId !== userId) {
-    throw new UnAuthorizedError("You are not authorized to delete this event.");
+    throw new UnAuthorizedError("You are unauthorized to delete this event.");
   }
 
   const deleteImageFromCloudinary = await handleDelete(id);
