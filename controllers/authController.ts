@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
+import prisma from "../config/prisma";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import UnauthenticatedError from "../errors/unauthenticated-error";

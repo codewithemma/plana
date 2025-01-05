@@ -9,6 +9,7 @@ import {
   UserSchema,
   UserUpdate,
   UserVerifySchema,
+  EventSpeakerRegistration,
 } from "../lib/zod";
 
 export const validateRegister = (
@@ -92,5 +93,14 @@ export const ValidateEvent = (
   next: NextFunction
 ) => {
   Event.parse(req.body);
+  next();
+};
+
+export const validateRegisterSpeaker = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  EventSpeakerRegistration.parse(req.body);
   next();
 };

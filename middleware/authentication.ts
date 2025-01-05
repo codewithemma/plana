@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
+import prisma from "../config/prisma";
 import { isTokenValid } from "../utils/jwt";
 import UnauthenticatedError from "../errors/unauthenticated-error";
 import attachCookiesToResponse from "../utils/jwt";

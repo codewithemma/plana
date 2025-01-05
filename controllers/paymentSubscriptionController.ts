@@ -1,10 +1,9 @@
 import { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
-import { PrismaClient } from "@prisma/client";
+import prisma from "../config/prisma";
 import axios from "axios";
 import BadRequestError from "../errors/bad-request";
 import UnAuthorizedError from "../errors/unauthorized-error";
-const prisma = new PrismaClient();
 
 const initiatePayment = async (req: Request, res: Response) => {
   const { email, amount } = req.body;

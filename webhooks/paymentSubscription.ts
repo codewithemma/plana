@@ -3,10 +3,9 @@ import ipaddr from "ipaddr.js";
 import crypto from "crypto";
 import BadRequestError from "../errors/bad-request";
 import { verifyPayment } from "../controllers/paymentSubscriptionController";
-import { PrismaClient } from "@prisma/client";
+import prisma from "../config/prisma";
 import attachCookiesToResponse from "../utils/jwt";
 import UnauthenticatedError from "../errors/unauthenticated-error";
-const prisma = new PrismaClient();
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 const PAYSTACK_IPS = ["52.31.139.75", "52.49.173.169", "52.214.14.220"];
 

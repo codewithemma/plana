@@ -91,3 +91,23 @@ export const Event = z.object({
     message: "Invalid date format",
   }),
 });
+
+export const EventSpeakerRegistration = z.object({
+  name: z
+    .string()
+    .min(1, "Name is required")
+    .max(100, "Name cannot exceed 100 characters"),
+  title: z
+    .string()
+    .min(1, "Title is required")
+    .max(50, "Title cannot exceed 50 characters"),
+  email: z.string().email("Invalid email format"),
+  bio: z
+    .string()
+    .min(1, "Bio is required")
+    .max(500, "Bio cannot exceed 500 characters"),
+  topic: z
+    .string()
+    .min(1, "Topic is required")
+    .max(200, "Topic cannot exceed 200 characters"),
+});

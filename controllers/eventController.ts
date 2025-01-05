@@ -1,13 +1,14 @@
 import fs from "fs";
 import { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
-import { PrismaClient } from "@prisma/client";
+import prisma from "../config/prisma";
 import BadRequestError from "../errors/bad-request";
 import NotFoundError from "../errors/not-found";
 import UnAuthorizedError from "../errors/unauthorized-error";
 import { cloudinary } from "../config/cloudinary";
 import fileUpload from "express-fileupload";
-const prisma = new PrismaClient();
+import UnauthenticatedError from "../errors/unauthenticated-error";
+import sendSpeakerConfirmationMail from "../utils/sendSpeakerConfirmationMail";
 
 const handleDelete = async (id: string) => {
   const oldImage = await prisma.event.findFirst({
@@ -36,8 +37,79 @@ const handleDelete = async (id: string) => {
 };
 
 const getAllEvents = async (req: Request, res: Response) => {
-  const events = await prisma.event.findMany({});
-  res.status(StatusCodes.OK).json({ events });
+  const { title, eventType, location, fee, tags, date, organizerId, search } =
+    req.query;
+
+  // Build a dynamic filter object
+  const filters: any = {};
+
+  if (typeof search === "string") {
+    filters.OR = [
+      { title: { contains: search, mode: "insensitive" } },
+      { description: { contains: search, mode: "insensitive" } },
+      { location: { contains: search, mode: "insensitive" } },
+      { tags: { has: search } }, // Search exact match in tags
+    ];
+  }
+
+  if (typeof title === "string") {
+    filters.title = { contains: title, mode: "insensitive" }; // Case-insensitive search
+  }
+
+  if (typeof eventType === "string") {
+    filters.eventType = eventType;
+  }
+
+  if (typeof location === "string") {
+    filters.location = { contains: location, mode: "insensitive" };
+  }
+
+  if (typeof fee === "string") {
+    const [minFee, maxFee] = fee.split(",");
+
+    filters.fee = {
+      gte: minFee || "0", // Minimum fee as string
+      lte: maxFee || "Infinity", // Maximum fee as string
+    };
+  }
+
+  if (typeof tags === "string") {
+    filters.tags = { hasSome: tags.split(",") }; // Filters events that match any of the provided tags
+  }
+
+  if (typeof date === "string") {
+    const [startDate, endDate] = date.split(",");
+    filters.date = {
+      gte: startDate ? new Date(startDate) : undefined,
+      lte: endDate ? new Date(endDate) : undefined,
+    };
+  }
+
+  if (typeof organizerId === "string") {
+    filters.organizerId = organizerId;
+  }
+
+  const events = await prisma.event.findMany({
+    where: filters,
+  });
+
+  res.status(StatusCodes.OK).json({ events, count: events.length });
+};
+
+const getEvent = async (req: Request, res: Response) => {
+  const userId = req.user?._id;
+
+  if (!userId) {
+    throw new UnauthenticatedError("");
+  }
+
+  const organizerEvent = await prisma.event.findFirst({
+    where: {
+      organizerId: userId,
+    },
+  });
+
+  res.status(StatusCodes.OK).json({ organizerEvent });
 };
 
 const getSingleEvent = async (req: Request, res: Response) => {
@@ -223,4 +295,102 @@ const deleteEvent = async (req: Request, res: Response) => {
     .json({ message: "The event has been successfully deleted." });
 };
 
-export { getAllEvents, getSingleEvent, createEvent, updateEvent, deleteEvent };
+// speaker
+
+const getEventSpeakers = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const speakers = await prisma.speaker.findMany({
+    where: {
+      eventId: id,
+    },
+  });
+  res.status(StatusCodes.OK).json({ speakers });
+};
+
+const registerSpeaker = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { name, title, email, bio, topic } = req.body;
+
+  // Validate event existence
+  const event = await prisma.event.findUnique({
+    where: { id },
+  });
+
+  if (!event) {
+    throw new NotFoundError("Event not found");
+  }
+
+  // Check for duplicate speaker registration
+  const existingSpeaker = await prisma.speaker.findFirst({
+    where: {
+      email,
+      eventId: id,
+    },
+  });
+
+  if (existingSpeaker) {
+    throw new BadRequestError(
+      "You are already registered as a speaker for this event."
+    );
+  }
+
+  let imageUrl = null;
+
+  if (req.files?.image) {
+    const imageFile = req.files.image as fileUpload.UploadedFile;
+
+    const uploadResponse = await cloudinary.uploader.upload(
+      imageFile.tempFilePath,
+      {
+        upload_preset: process.env.CLOUDINARY_PRESET_NAME,
+        folder: "plana_assets",
+        use_filename: true,
+      }
+    );
+
+    if (uploadResponse && uploadResponse.secure_url) {
+      imageUrl = uploadResponse.secure_url;
+    }
+
+    // Remove temporary file
+    if (fs.existsSync(imageFile.tempFilePath)) {
+      fs.unlinkSync(imageFile.tempFilePath);
+    }
+  }
+
+  const speaker = await prisma.speaker.create({
+    data: {
+      name,
+      bio,
+      topic,
+      email,
+      title,
+      imageUrl,
+      eventId: id, // Relate the speaker to the event
+    },
+  });
+
+  // send email
+  await sendSpeakerConfirmationMail({
+    email: speaker.email,
+    eventDate: event.date.toISOString(),
+    eventLocation: event.location,
+    eventName: event.title,
+    speakerName: speaker.name,
+  });
+
+  res.status(StatusCodes.CREATED).json({
+    message: "You have successfully registered as a speaker for this event.",
+  });
+};
+
+export {
+  getAllEvents,
+  getEvent,
+  getSingleEvent,
+  createEvent,
+  updateEvent,
+  deleteEvent,
+  getEventSpeakers,
+  registerSpeaker,
+};
