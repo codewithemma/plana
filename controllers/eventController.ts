@@ -277,26 +277,47 @@ const deleteEvent = async (req: Request, res: Response) => {
     throw new UnAuthorizedError("You are unauthorized to delete this event.");
   }
 
-  const deleteImageFromCloudinary = await handleDelete(id);
+  await prisma.$transaction(async (tx) => {
+    // Find speakers related to the event
+    const speakers = await tx.speaker.findMany({
+      where: { eventId: id },
+    });
 
-  if (deleteImageFromCloudinary === "failure") {
-    throw new BadRequestError(
-      "An error occurred while deleting the event. Please try again."
-    );
-  }
+    for (const speaker of speakers) {
+      if (speaker.imageUrl) {
+        // Extract public ID from Cloudinary URL
+        const urlParts = speaker.imageUrl.split("/");
+        const folderAndPublicId = urlParts.slice(-2).join("/"); // Adjust if folder is deeper
+        const publicId = folderAndPublicId.split(".")[0];
 
-  const event = await prisma.event.delete({
-    where: {
-      id,
-    },
+        // Delete speaker image from Cloudinary
+        await cloudinary.uploader.destroy(publicId, { invalidate: true });
+      }
+
+      // Delete speaker from the database
+      await tx.speaker.delete({
+        where: { id: speaker.id },
+      });
+    }
+
+    // Delete event image from Cloudinary
+    const deleteImageFromCloudinary = await handleDelete(id);
+    if (deleteImageFromCloudinary === "failure") {
+      throw new Error("Failed to delete event image from Cloudinary.");
+    }
+
+    // Delete the event
+    await tx.event.delete({
+      where: { id },
+    });
   });
+
   res
     .status(StatusCodes.OK)
     .json({ message: "The event has been successfully deleted." });
 };
 
 // speaker
-
 const getEventSpeakers = async (req: Request, res: Response) => {
   const { id } = req.params;
   const speakers = await prisma.speaker.findMany({
@@ -334,7 +355,7 @@ const registerSpeaker = async (req: Request, res: Response) => {
     );
   }
 
-  let imageUrl = null;
+  let imageUrl: string | null = null;
 
   if (req.files?.image) {
     const imageFile = req.files.image as fileUpload.UploadedFile;

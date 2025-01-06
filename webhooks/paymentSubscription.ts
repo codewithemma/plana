@@ -6,6 +6,7 @@ import { verifyPayment } from "../controllers/paymentSubscriptionController";
 import prisma from "../config/prisma";
 import attachCookiesToResponse from "../utils/jwt";
 import UnauthenticatedError from "../errors/unauthenticated-error";
+import { StatusCodes } from "http-status-codes";
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 const PAYSTACK_IPS = ["52.31.139.75", "52.49.173.169", "52.214.14.220"];
 
@@ -84,6 +85,8 @@ const paymentWebhook = async (req: Request, res: Response) => {
       refreshToken: "",
     });
   }
-  res.sendStatus(200);
+
+  // send confirmantion mail
+  res.sendStatus(StatusCodes.OK);
 };
 export default paymentWebhook;
