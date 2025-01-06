@@ -47,7 +47,6 @@ const register = async (req: Request, res: Response) => {
   await sendVerificationMail({
     email: userToken.email,
     userId: userToken.id,
-    token,
   });
 
   res.status(StatusCodes.OK).json({
