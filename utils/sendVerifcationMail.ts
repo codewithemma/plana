@@ -5,7 +5,7 @@ import sendEmail from "../config/nodemailer";
 const headerColor = "#D9D9D9";
 const logoUrl = "/assets/brand.svg";
 
-const sendVerificationMail = async ({ email, userId, token }: MailProp) => {
+const sendVerificationMail = async ({ email, userId }: MailProp) => {
   // generate hashed token
   const hashedToken = crypto.randomInt(100000, 999999).toString();
 
@@ -13,12 +13,10 @@ const sendVerificationMail = async ({ email, userId, token }: MailProp) => {
     where: { id: userId },
     data: { email, token: hashedToken },
   });
-  const verificationUrl = `${process.env.ORIGIN}/auth/verify-email?quid=${token}`;
   const messageContent = `
         <p>Thank you for signing up for a Mobosure account. To complete your registration, please use the OTP code below:</p>
         <p style="font-size: 20px; font-weight: bold;">${hashedToken}</p>
         <p>Please enter this code on the verification page to activate your account.</p>
-        <a href="${verificationUrl}" style="margin-top: 5px; text-decoration: none;">${verificationUrl}</a>
       `;
 
   const buttonHtml = ""; // No button needed for OTP verification
