@@ -91,7 +91,7 @@ model Speaker {
   title    String // Title or role of the speaker (e.g., "Keynote Speaker")
   bio      String // Biography of the speaker
   topic    String
-  imageUrl String? // Image URL for the speaker (optional)
+  image String? // Image URL for the speaker (optional)
   eventId  String  @db.ObjectId // Foreign key for the event
   event    Event   @relation(fields: [eventId], references: [id])
 }

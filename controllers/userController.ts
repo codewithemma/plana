@@ -23,7 +23,7 @@ const getAllUsers = async (req: Request, res: Response) => {
 };
 
 const getCurrentUser = async (req: Request, res: Response) => {
-  const user = await prisma.user.findFirst({
+  const user = await prisma.user.findUnique({
     where: {
       id: req.user?._id,
     },
@@ -101,7 +101,7 @@ const updateCurrentUser = async (req: Request, res: Response) => {
 const updateCurrentUserEmail = async (req: Request, res: Response) => {
   const { newEmail } = req.body;
 
-  const existingUser = await prisma.user.findFirst({
+  const existingUser = await prisma.user.findUnique({
     where: {
       email: newEmail,
     },

@@ -233,6 +233,7 @@ const resetPassword = async (req: Request, res: Response) => {
     },
     data: {
       password: hashedPassword,
+      updatedAt: new Date(),
     },
   });
 

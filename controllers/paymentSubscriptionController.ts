@@ -4,11 +4,19 @@ import prisma from "../config/prisma";
 import axios from "axios";
 import BadRequestError from "../errors/bad-request";
 import UnAuthorizedError from "../errors/unauthorized-error";
+import UnauthenticatedError from "../errors/unauthenticated-error";
 
 const initiatePayment = async (req: Request, res: Response) => {
   const { email, amount } = req.body;
   const userId = req.user?._id;
-  const user = await prisma.user.findFirst({
+
+  if (!userId) {
+    throw new UnauthenticatedError(
+      "Authentication failed. Please log in and try again."
+    );
+  }
+
+  const user = await prisma.user.findUnique({
     where: {
       id: userId,
     },
@@ -16,6 +24,11 @@ const initiatePayment = async (req: Request, res: Response) => {
 
   if (!user) {
     throw new UnAuthorizedError("User not authenticated. Please log in.");
+  }
+
+  // Check if the user has already subscribed
+  if (user.hasPremiumPlan) {
+    throw new BadRequestError("You are already subscribed.");
   }
 
   const response = await axios.post(

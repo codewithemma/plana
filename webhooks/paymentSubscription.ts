@@ -7,6 +7,7 @@ import prisma from "../config/prisma";
 import attachCookiesToResponse from "../utils/jwt";
 import UnauthenticatedError from "../errors/unauthenticated-error";
 import { StatusCodes } from "http-status-codes";
+import sendOrganizerSubscriptionMail from "../utils/sendOrganizerSubscriptionMail";
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 const PAYSTACK_IPS = ["52.31.139.75", "52.49.173.169", "52.214.14.220"];
 
@@ -68,25 +69,29 @@ const paymentWebhook = async (req: Request, res: Response) => {
 
     const userId: string = verification.data.metadata.id;
 
-    await prisma.user.update({
+    const user = await prisma.user.update({
       where: { id: userId },
-      data: { role: "ORGANIZER", hasPremiumPlan: true },
+      data: { role: "ORGANIZER", hasPremiumPlan: true, updatedAt: new Date() },
     });
 
     //  not working yet
-
     attachCookiesToResponse({
       res,
       user: {
-        _id: userId,
+        _id: user.id,
         role: "ORGANIZER",
-        username: verification.metadata.data.username,
+        username: user.username,
       },
       refreshToken: "",
     });
+
+    // send confirmantion mail
+    await sendOrganizerSubscriptionMail({
+      email: user.email,
+      organizerName: user.username,
+    });
   }
 
-  // send confirmantion mail
   res.sendStatus(StatusCodes.OK);
 };
 export default paymentWebhook;

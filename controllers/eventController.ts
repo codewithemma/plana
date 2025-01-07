@@ -100,7 +100,9 @@ const getEvent = async (req: Request, res: Response) => {
   const userId = req.user?._id;
 
   if (!userId) {
-    throw new UnauthenticatedError("");
+    throw new UnauthenticatedError(
+      "Authentication failed. Please log in and try again."
+    );
   }
 
   const organizerEvent = await prisma.event.findFirst({
@@ -284,9 +286,9 @@ const deleteEvent = async (req: Request, res: Response) => {
     });
 
     for (const speaker of speakers) {
-      if (speaker.imageUrl) {
+      if (speaker.image) {
         // Extract public ID from Cloudinary URL
-        const urlParts = speaker.imageUrl.split("/");
+        const urlParts = speaker.image.split("/");
         const folderAndPublicId = urlParts.slice(-2).join("/"); // Adjust if folder is deeper
         const publicId = folderAndPublicId.split(".")[0];
 
@@ -386,7 +388,7 @@ const registerSpeaker = async (req: Request, res: Response) => {
       topic,
       email,
       title,
-      imageUrl,
+      image: imageUrl,
       eventId: id, // Relate the speaker to the event
     },
   });
