@@ -9,6 +9,7 @@ import { cloudinary } from "../config/cloudinary";
 import fileUpload from "express-fileupload";
 import UnauthenticatedError from "../errors/unauthenticated-error";
 import sendSpeakerConfirmationMail from "../utils/sendSpeakerConfirmationMail";
+import { initializePayment } from "../utils/paystack";
 
 const handleDelete = async (id: string) => {
   const oldImage = await prisma.event.findFirst({
@@ -407,6 +408,103 @@ const registerSpeaker = async (req: Request, res: Response) => {
   });
 };
 
+const attendEvent = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { username, email, quantity } = req.body; // todo: validate req.body with zod
+
+  // Check if the event exists
+  const event = await prisma.event.findUnique({
+    where: { id },
+  });
+
+  if (!event) {
+    throw new NotFoundError("Event not found.");
+  }
+
+  // Check if attendee already exists
+  const attendeeExists = await prisma.attendee.findUnique({
+    where: { email },
+  });
+
+  if (attendeeExists) {
+    throw new BadRequestError("You have already registered for this event.");
+  }
+
+  const userId = req.user?._id;
+
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+  });
+
+  if (!user) {
+    throw new NotFoundError("User not found.");
+  }
+
+  // Calculate ticket price
+  const ticketPrice = Number(event.fee);
+  console.log(ticketPrice);
+
+  if (event.fee === "0.00") {
+    await prisma.$transaction(async (tx) => {
+      // Register the attendee automatically
+      const ticket = await tx.ticket.create({
+        data: {
+          price: "FREE",
+          quantity,
+          eventId: id,
+          name: "General Admission",
+          description: "Access to the event at no cost.",
+          paymentReference: "N/A",
+          status: "SUCCESS",
+        },
+      });
+      await tx.attendee.create({
+        data: {
+          email,
+          name: username,
+          eventId: id,
+          ticketId: ticket.id,
+        },
+      });
+    });
+    res.status(StatusCodes.CREATED).json({
+      message: "You have successfully registered for this free event.",
+    });
+  }
+
+  const paymentResponse = await initializePayment({
+    email,
+    amount: ticketPrice * quantity * 100,
+    metadata: {
+      id: user.id,
+      username: user.username,
+      type: "ticket_purchase",
+    },
+  });
+
+  // Create a new ticket entry with status "pending"
+  const ticket = await prisma.ticket.create({
+    data: {
+      price: event.fee,
+      quantity,
+      eventId: id,
+      name: "General Admission",
+      description:
+        "Standard ticket granting access to the event, includes all general sessions and activities.",
+      paymentReference: paymentResponse.data.reference,
+      status: "PENDING",
+    },
+  });
+
+  res.status(StatusCodes.CREATED).json({
+    message:
+      "Payment initiated. Complete the payment to finalize your registration.",
+    data: paymentResponse.data,
+  });
+};
+
 export {
   getAllEvents,
   getEvent,
@@ -416,4 +514,5 @@ export {
   deleteEvent,
   getEventSpeakers,
   registerSpeaker,
+  attendEvent,
 };

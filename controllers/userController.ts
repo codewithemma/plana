@@ -74,13 +74,12 @@ const updateCurrentUser = async (req: Request, res: Response) => {
     where: {
       id: req.user?._id,
     },
-    // Preserve current data if not updating
     data: {
-      username: username || user.username,
+      username: username,
       password: hashedPassword,
-      firstName: firstName || user.firstName,
-      lastName: lastName || user.lastName,
-      phoneNumber: phone || user.phoneNumber,
+      firstName: firstName,
+      lastName: lastName,
+      phoneNumber: phone,
       updatedAt: new Date(),
     },
   });

@@ -68,20 +68,39 @@ model Event {
   attendees   Attendee[]
   organizerId String     @db.ObjectId
   organizer   User       @relation("UserEvents", fields: [organizerId], references: [id])
-  speakers     Speaker[]
+  speakers    Speaker[]
+  tickets     Ticket[]
   hasSpeakers Boolean @default(false)
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 }
 
+model Ticket {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String   // Name of the ticket type (e.g., "VIP", "General Admission")
+  description String? // Optional description of the ticket
+  status    String @default("PENDING")
+  eventId   String   @db.ObjectId
+  event     Event    @relation(fields: [eventId], references: [id])
+  price     String    
+  quantity  Int  
+  paymentReference String // Payment reference for paid events, if applicable
+  attendees Attendee[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model Attendee {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-  name       String // Name of the attendee
-  email      String // Email of the attendee
-  ticketType String // Ticket type (e.g., Early Bird, General Admission)
-  status     String // Attendee status (e.g., Confirmed, Pending)
-  eventId    String @db.ObjectId
-  event      Event  @relation(fields: [eventId], references: [id])
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  name            String   // Name of the attendee
+  email           String   @unique// Email of the attendee
+  phone           String?  // Optional phone number for additional contact
+  ticketId        String   @db.ObjectId
+  ticket          Ticket   @relation(fields: [ticketId], references: [id])
+  eventId         String   @db.ObjectId
+  event           Event    @relation(fields: [eventId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 model Speaker {
@@ -94,4 +113,7 @@ model Speaker {
   image String? // Image URL for the speaker (optional)
   eventId  String  @db.ObjectId // Foreign key for the event
   event    Event   @relation(fields: [eventId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
+
