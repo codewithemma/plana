@@ -17,7 +17,7 @@ const initializePayment = async ({ email, amount, metadata }: Payment) => {
     `${process.env.PAYSTACK_BASE_URL}/transaction/initialize`,
     {
       email,
-      amount,
+      amount: amount * 100,
       metadata,
     },
     {

@@ -420,15 +420,15 @@ const attendEvent = async (req: Request, res: Response) => {
   if (!event) {
     throw new NotFoundError("Event not found.");
   }
+  /** still under review */
+  // // Check if attendee already exists
+  // const attendeeExists = await prisma.attendee.findUnique({
+  //   where: { email, eventId: id },
+  // });
 
-  // Check if attendee already exists
-  const attendeeExists = await prisma.attendee.findUnique({
-    where: { email },
-  });
-
-  if (attendeeExists) {
-    throw new BadRequestError("You have already registered for this event.");
-  }
+  // if (attendeeExists) {
+  //   throw new BadRequestError("You have already registered for this event.");
+  // }
 
   const userId = req.user?._id;
 
@@ -443,8 +443,7 @@ const attendEvent = async (req: Request, res: Response) => {
   }
 
   // Calculate ticket price
-  const ticketPrice = Number(event.fee);
-  console.log(ticketPrice);
+  const ticketPrice = Number(event.fee) * quantity;
 
   if (event.fee === "0.00") {
     await prisma.$transaction(async (tx) => {
@@ -476,25 +475,12 @@ const attendEvent = async (req: Request, res: Response) => {
 
   const paymentResponse = await initializePayment({
     email,
-    amount: ticketPrice * quantity * 100,
+    amount: ticketPrice,
     metadata: {
-      id: user.id,
+      id: event.id,
       username: user.username,
       type: "ticket_purchase",
-    },
-  });
-
-  // Create a new ticket entry with status "pending"
-  const ticket = await prisma.ticket.create({
-    data: {
-      price: event.fee,
       quantity,
-      eventId: id,
-      name: "General Admission",
-      description:
-        "Standard ticket granting access to the event, includes all general sessions and activities.",
-      paymentReference: paymentResponse.data.reference,
-      status: "PENDING",
     },
   });
 

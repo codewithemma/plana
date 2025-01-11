@@ -61,8 +61,10 @@ const paymentWebhook = async (req: Request, res: Response) => {
       const expectedAmount = 500_000;
       const amountPaid = data.amount;
 
-      if (amountPaid < expectedAmount) {
-        throw new BadRequestError("Insufficient payment amount.");
+      if (amountPaid !== expectedAmount) {
+        throw new BadRequestError(
+          `Payment mismatch: Expected ${expectedAmount} NGN, but received ${amountPaid} NGN.`
+        );
       }
 
       const verification = await verifyPayment(data.reference);
@@ -94,11 +96,81 @@ const paymentWebhook = async (req: Request, res: Response) => {
         organizerName: user.username,
       });
     } else if (metadata.type === "ticket_purchase") {
-      const expectedAmount = 500_000;
-      const amountPaid = data.amount;
-      console.log(event, data);
+      const eventId: string = metadata.id;
+      const eventFee = await prisma.event.findUnique({
+        where: { id: eventId },
+        select: { fee: true },
+      });
+
+      console.log("Event Fee:", eventFee);
+
+      if (!eventFee) {
+        throw new BadRequestError(
+          "The event you are trying to access does not exist or has been removed."
+        );
+      }
+
+      const expectedAmount = Number(eventFee.fee) * metadata.quantity;
+
+      const amountPaid = data.amount / 100;
+
+      if (amountPaid !== expectedAmount) {
+        throw new BadRequestError(
+          `Payment mismatch: Expected ${expectedAmount} NGN, but received ${amountPaid} NGN.`
+        );
+      }
+
+      const verification = await verifyPayment(data.reference);
+
+      // if (verification.data.amount / 100 !== expectedAmount) {
+      //   throw new BadRequestError(
+      //     "Payment amount mismatch after verification."
+      //   );
+      // }
+
+      if (!verification.status || verification.data.status !== "success") {
+        console.log("Payment verification failed.");
+        throw new BadRequestError("Payment verification failed");
+      }
+      if (!metadata.quantity || !metadata.id || !metadata.username) {
+        throw new BadRequestError("Invalid metadata: Missing required fields");
+      }
+      if (!data.customer || !data.customer.email || !data.reference) {
+        throw new BadRequestError("Invalid data: Missing required fields");
+      }
+      console.log("Starting transaction...");
+      //perform database transaction
+      // await prisma.$transaction(async (tx) => {
+      //   // Register the attendee automatically
+      //   const ticket = await tx.ticket.create({
+      //     data: {
+      //       price: eventFee.fee,
+      //       quantity: 2,
+      //       eventId: "metadata.id",
+      //       name: "General Admission",
+      //       description:
+      //         "Standard ticket granting access to the event, includes all general sessions and activities.",
+      //       paymentReference: "data.reference",
+      //       status: "SUCCESS",
+      //     },
+      //   });
+      //   await tx.attendee.create({
+      //     data: {
+      //       email: "data.customer.email",
+      //       name: metadata.username,
+      //       eventId: metadata.id,
+      //       ticketId: ticket.id,
+      //     },
+      //   });
+      // });
+
+      console.log("Ending transaction...");
+    } else {
+      console.error("Unhandled metadata.type:", data.metadata.type);
+      throw new BadRequestError("Invalid metadata type");
     }
   }
+  // console.log(event, data);
 
   res.sendStatus(StatusCodes.OK);
 };

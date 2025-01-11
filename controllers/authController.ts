@@ -15,16 +15,23 @@ import sendVerificationMail from "../utils/sendVerifcationMail";
 const register = async (req: Request, res: Response) => {
   const { username, email, password } = req.body;
 
-  const emailAlreadyExists = await prisma.user.findUnique({
+  const existingUser = await prisma.user.findFirst({
     where: {
-      email,
+      OR: [{ email }, { username }],
     },
   });
 
-  if (emailAlreadyExists) {
-    throw new BadRequestError(
-      "The email address is already associated with another account."
-    );
+  if (existingUser) {
+    if (existingUser.email === email) {
+      throw new BadRequestError(
+        "The email address is already associated with another account."
+      );
+    }
+    if (existingUser.username === username) {
+      throw new BadRequestError(
+        "This username is already in use. Please choose a different one."
+      );
+    }
   }
 
   const data = {
