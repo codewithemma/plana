@@ -83,7 +83,6 @@ model Ticket {
   eventId   String   @db.ObjectId
   event     Event    @relation(fields: [eventId], references: [id])
   price     String    
-  quantity  Int  
   paymentReference String // Payment reference for paid events, if applicable
   attendees Attendee[]
   createdAt DateTime @default(now())
@@ -93,7 +92,7 @@ model Ticket {
 model Attendee {
   id              String   @id @default(auto()) @map("_id") @db.ObjectId
   name            String   // Name of the attendee
-  email           String   @unique// Email of the attendee
+  email           String   
   phone           String?  // Optional phone number for additional contact
   ticketId        String   @db.ObjectId
   ticket          Ticket   @relation(fields: [ticketId], references: [id])

@@ -410,7 +410,7 @@ const registerSpeaker = async (req: Request, res: Response) => {
 
 const attendEvent = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { username, email, quantity } = req.body; // todo: validate req.body with zod
+  const { username, email } = req.body; // todo: validate req.body with zod
 
   // Check if the event exists
   const event = await prisma.event.findUnique({
@@ -421,14 +421,19 @@ const attendEvent = async (req: Request, res: Response) => {
     throw new NotFoundError("Event not found.");
   }
   /** still under review */
-  // // Check if attendee already exists
-  // const attendeeExists = await prisma.attendee.findUnique({
-  //   where: { email, eventId: id },
-  // });
+  // Check if attendee already exists
+  const attendeeExists = await prisma.attendee.findUnique({
+    where: {
+      email_eventId: {
+        email: email,
+        eventId: id,
+      },
+    },
+  });
 
-  // if (attendeeExists) {
-  //   throw new BadRequestError("You have already registered for this event.");
-  // }
+  if (attendeeExists) {
+    throw new BadRequestError("You have already registered for this event.");
+  }
 
   const userId = req.user?._id;
 
@@ -443,7 +448,7 @@ const attendEvent = async (req: Request, res: Response) => {
   }
 
   // Calculate ticket price
-  const ticketPrice = Number(event.fee) * quantity;
+  const ticketPrice = Number(event.fee);
 
   if (event.fee === "0.00") {
     await prisma.$transaction(async (tx) => {
@@ -451,10 +456,10 @@ const attendEvent = async (req: Request, res: Response) => {
       const ticket = await tx.ticket.create({
         data: {
           price: "FREE",
-          quantity,
           eventId: id,
-          name: "General Admission",
-          description: "Access to the event at no cost.",
+          name: "Standard Admission",
+          description:
+            "Enjoy complimentary access to the event, providing entry to general areas at no cost.",
           paymentReference: "N/A",
           status: "SUCCESS",
         },
@@ -480,7 +485,6 @@ const attendEvent = async (req: Request, res: Response) => {
       id: event.id,
       username: user.username,
       type: "ticket_purchase",
-      quantity,
     },
   });
 

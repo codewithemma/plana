@@ -51,127 +51,132 @@ const paymentWebhook = async (req: Request, res: Response) => {
   if (hash !== req.headers["x-paystack-signature"]) {
     throw new BadRequestError("Invalid Paystack signature.");
   }
+  try {
+    const { event, data } = req.body;
 
-  const { event, data } = req.body;
+    if (event === "charge.success") {
+      const { metadata } = data;
 
-  if (event === "charge.success") {
-    const { metadata } = data;
+      if (metadata.type === "organizer_subscription") {
+        const expectedAmount = 500_000;
+        const amountPaid = data.amount;
 
-    if (metadata.type === "organizer_subscription") {
-      const expectedAmount = 500_000;
-      const amountPaid = data.amount;
+        if (amountPaid !== expectedAmount) {
+          throw new BadRequestError(
+            `Payment mismatch: Expected ${expectedAmount} NGN, but received ${amountPaid} NGN.`
+          );
+        }
 
-      if (amountPaid !== expectedAmount) {
-        throw new BadRequestError(
-          `Payment mismatch: Expected ${expectedAmount} NGN, but received ${amountPaid} NGN.`
-        );
+        const verification = await verifyPayment(data.reference);
+
+        if (!verification.status || verification.data.status !== "success") {
+          throw new BadRequestError("Payment verification failed");
+        }
+
+        const userId: string = verification.data.metadata.id;
+
+        const user = await prisma.user.update({
+          where: { id: userId },
+          data: {
+            role: "ORGANIZER",
+            hasPremiumPlan: true,
+            updatedAt: new Date(),
+          },
+        });
+
+        const tokenUser = createTokenUser({
+          _id: user.id,
+          username: user.username,
+          role: user.role,
+        });
+
+        attachCookiesToResponse({ res, user: tokenUser, refreshToken: "" });
+
+        // send confirmantion mail
+        await sendOrganizerSubscriptionMail({
+          email: user.email,
+          organizerName: user.username,
+        });
       }
 
-      const verification = await verifyPayment(data.reference);
+      if (metadata.type === "ticket_purchase") {
+        const eventId: string = metadata.id;
+        const eventFee = await prisma.event.findUnique({
+          where: { id: eventId },
+          select: { fee: true },
+        });
 
-      if (!verification.status || verification.data.status !== "success") {
-        throw new BadRequestError("Payment verification failed");
+        if (!eventFee) {
+          throw new BadRequestError(
+            "The event you are trying to access does not exist or has been removed."
+          );
+        }
+
+        const expectedAmount = Number(eventFee.fee);
+
+        const amountPaid = data.amount / 100;
+
+        if (amountPaid !== expectedAmount) {
+          throw new BadRequestError(
+            `Payment mismatch: Expected ${expectedAmount} NGN, but received ${amountPaid} NGN.`
+          );
+        }
+
+        const verification = await verifyPayment(data.reference);
+
+        if (verification.data.amount / 100 !== expectedAmount) {
+          throw new BadRequestError(
+            "Payment amount mismatch after verification."
+          );
+        }
+
+        if (!verification.status || verification.data.status !== "success") {
+          console.log("Payment verification failed.");
+          throw new BadRequestError("Payment verification failed");
+        }
+
+        if (!metadata.id || !metadata.username) {
+          throw new BadRequestError(
+            "Invalid metadata: Missing required fields"
+          );
+        }
+
+        if (!data.customer || !data.customer.email || !data.reference) {
+          throw new BadRequestError("Invalid data: Missing required fields");
+        }
+
+        //  perform database transaction
+        await prisma.$transaction(async (tx) => {
+          const ticket = await tx.ticket.create({
+            data: {
+              name: "Premium Event Access",
+              description:
+                "A premium ticket that guarantees entry to the event and includes exclusive access to all general areas and amenities.",
+              status: "SUCCESS",
+              eventId: metadata.id,
+              price: eventFee.fee,
+              paymentReference: data.reference,
+            },
+          });
+
+          await tx.attendee.create({
+            data: {
+              name: metadata.username,
+              email: data.customer.email,
+              phone: metadata.phone || null,
+              ticketId: ticket.id,
+              eventId: metadata.id,
+            },
+          });
+        });
       }
-
-      const userId: string = verification.data.metadata.id;
-
-      const user = await prisma.user.update({
-        where: { id: userId },
-        data: {
-          role: "ORGANIZER",
-          hasPremiumPlan: true,
-          updatedAt: new Date(),
-        },
-      });
-
-      const tokenUser = createTokenUser({
-        _id: user.id,
-        username: user.username,
-        role: user.role,
-      });
-      attachCookiesToResponse({ res, user: tokenUser, refreshToken: "" });
-      // send confirmantion mail
-      await sendOrganizerSubscriptionMail({
-        email: user.email,
-        organizerName: user.username,
-      });
-    } else if (metadata.type === "ticket_purchase") {
-      const eventId: string = metadata.id;
-      const eventFee = await prisma.event.findUnique({
-        where: { id: eventId },
-        select: { fee: true },
-      });
-
-      console.log("Event Fee:", eventFee);
-
-      if (!eventFee) {
-        throw new BadRequestError(
-          "The event you are trying to access does not exist or has been removed."
-        );
-      }
-
-      const expectedAmount = Number(eventFee.fee) * metadata.quantity;
-
-      const amountPaid = data.amount / 100;
-
-      if (amountPaid !== expectedAmount) {
-        throw new BadRequestError(
-          `Payment mismatch: Expected ${expectedAmount} NGN, but received ${amountPaid} NGN.`
-        );
-      }
-
-      const verification = await verifyPayment(data.reference);
-
-      // if (verification.data.amount / 100 !== expectedAmount) {
-      //   throw new BadRequestError(
-      //     "Payment amount mismatch after verification."
-      //   );
-      // }
-
-      if (!verification.status || verification.data.status !== "success") {
-        console.log("Payment verification failed.");
-        throw new BadRequestError("Payment verification failed");
-      }
-      if (!metadata.quantity || !metadata.id || !metadata.username) {
-        throw new BadRequestError("Invalid metadata: Missing required fields");
-      }
-      if (!data.customer || !data.customer.email || !data.reference) {
-        throw new BadRequestError("Invalid data: Missing required fields");
-      }
-      console.log("Starting transaction...");
-      //perform database transaction
-      // await prisma.$transaction(async (tx) => {
-      //   // Register the attendee automatically
-      //   const ticket = await tx.ticket.create({
-      //     data: {
-      //       price: eventFee.fee,
-      //       quantity: 2,
-      //       eventId: "metadata.id",
-      //       name: "General Admission",
-      //       description:
-      //         "Standard ticket granting access to the event, includes all general sessions and activities.",
-      //       paymentReference: "data.reference",
-      //       status: "SUCCESS",
-      //     },
-      //   });
-      //   await tx.attendee.create({
-      //     data: {
-      //       email: "data.customer.email",
-      //       name: metadata.username,
-      //       eventId: metadata.id,
-      //       ticketId: ticket.id,
-      //     },
-      //   });
-      // });
-
-      console.log("Ending transaction...");
-    } else {
-      console.error("Unhandled metadata.type:", data.metadata.type);
-      throw new BadRequestError("Invalid metadata type");
     }
+  } catch (error) {
+    console.log(error);
+    throw new BadRequestError(
+      "An error occurred while processing the ticket purchase"
+    );
   }
-  // console.log(event, data);
-
   res.sendStatus(StatusCodes.OK);
 };
 export default paymentWebhook;

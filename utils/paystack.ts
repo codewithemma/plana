@@ -8,7 +8,6 @@ interface Payment {
     id: string;
     username: string;
     type: string;
-    quantity?: number;
   };
 }
 
